@@ -13,23 +13,16 @@ import (
 var DB *gorm.DB
 
 func DatabaseInit() {
-	// Intentar cargar el archivo .env
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file, using environment variables instead")
-	}
-
-	// Obtener la variable de entorno GO_ENV
-	env := os.Getenv("GO_ENV")
-	if env == "" {
-		log.Fatal("GO_ENV is not set")
-	}
-
-	// Verificar si estamos en un entorno local o en un entorno de producción
-	if env == "local" {
-		log.Println("Running in local environment")
-	} else if env == "production" {
-		log.Println("Running in production environment")
+	// Intentar cargar el archivo .env solo si el entorno es local
+	if os.Getenv("GO_ENV") == "" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		} else {
+			log.Printf("GO_ENV is not set. Loading .env file for local environment.")
+		}
+	} else if os.Getenv("GO_ENV") == "production" {
+		log.Printf("GO_ENV is set to production. Skipping loading .env file and using environment variables from server.")
 	}
 
 	// Obtener las variables de entorno para la base de datos
@@ -50,6 +43,7 @@ func DatabaseInit() {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		host, user, password, dbName, port, sslmode, timezone)
 
+	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
